@@ -174,6 +174,10 @@ const STYLE = `
   .pl-budget-bar-bg { background: var(--cream-deep); border-radius: 999px; height: 8px; margin: 10px 0 6px; overflow: hidden; }
   .pl-budget-bar-fill { height: 8px; border-radius: 999px; transition: width .3s ease; }
   .pl-spend-entry { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .pl-csv-stat { text-align: center; flex: 1; padding: 12px; border-radius: 10px; }
+  .pl-csv-stat .num { font-size: 24px; font-weight: 700; }
+  .pl-csv-stat .lbl { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+
 
 
 
@@ -1445,6 +1449,9 @@ export default function App() {
   const [showAssetForm, setShowAssetForm] = useState(false);
   const [editingAsset, setEditingAsset] = useState(null);
 
+  const [csvPreview, setCsvPreview] = useState(null); // { added, updated, unchanged, missing }
+  const [showCsvPreview, setShowCsvPreview] = useState(false);
+
   const [analyticsData, setAnalyticsData] = useState([]);
   const [analyticsPlatformFilter, setAnalyticsPlatformFilter] = useState("all");
   const [showAnalyticsForm, setShowAnalyticsForm] = useState(false);
@@ -1688,6 +1695,94 @@ export default function App() {
     });
   }, [analyticsData, analyticsPlatformFilter]);
 
+
+  function parseProductCSV(text) {
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) return null;
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      // Handle quoted fields with commas
+      const cols = [];
+      let cur = '', inQ = false;
+      for (const ch of lines[i]) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+      if (cols.length < 2) continue;
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = (cols[idx] || '').replace(/^"|"$/g, '').trim(); });
+      if (!row['Product Name'] && !row['Product ID']) continue;
+      rows.push({
+        id: row['Product ID'] || '',
+        name: row['Product Name'] || '',
+        supplier: row['Supplier'] || '',
+        brandFamily: row['Brand Family'] || '',
+        type: row['Product Type'] || '',
+        package: row['Package'] || '',
+        seasonality: row['Annual or Seasonal'] || 'Annual',
+        status: row['Status'] || 'Active',
+      });
+    }
+    return rows;
+  }
+
+  function handleCsvReimport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const parsed = parseProductCSV(ev.target.result);
+      if (!parsed || parsed.length === 0) {
+        showToast('Could not read CSV — make sure it matches the Encompass export format.');
+        return;
+      }
+      const existingById = {};
+      products.forEach(p => { if (p.id) existingById[p.id] = p; });
+      const incomingIds = new Set(parsed.map(p => p.id).filter(Boolean));
+
+      const added = [];
+      const updated = [];
+      const unchanged = [];
+
+      parsed.forEach(incoming => {
+        const existing = existingById[incoming.id];
+        if (!existing) {
+          added.push(incoming);
+        } else {
+          const changed = Object.keys(incoming).some(k => incoming[k] !== existing[k]);
+          if (changed) updated.push({ old: existing, new: incoming });
+          else unchanged.push(incoming);
+        }
+      });
+
+      const missing = products.filter(p => p.id && !incomingIds.has(p.id));
+
+      setCsvPreview({ added, updated, unchanged, missing, parsed });
+      setShowCsvPreview(true);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
+  function applyCsvMerge() {
+    if (!csvPreview) return;
+    setProducts(prev => {
+      const byId = {};
+      prev.forEach(p => { if (p.id) byId[p.id] = p; });
+      // Apply updates
+      csvPreview.updated.forEach(u => { byId[u.new.id] = u.new; });
+      // Add new
+      csvPreview.added.forEach(a => { byId[a.id || Date.now().toString()] = a; });
+      // Keep missing products as-is (don't delete)
+      return Object.values(byId);
+    });
+    setShowCsvPreview(false);
+    setCsvPreview(null);
+    showToast(`CSV merged — ${csvPreview.added.length} added, ${csvPreview.updated.length} updated.`);
+  }
 
   function saveAsset(form) {
     if (editingAsset) {
@@ -3054,25 +3149,43 @@ export default function App() {
 
         {tab === "portfolio" && (
           <div>
-            <div className="pl-subnav">
-              <button
-                className={"pl-pill" + (portfolioView === "suppliers" ? " active" : "")}
-                onClick={() => { setPortfolioView("suppliers"); setSelectedSupplier(null); setSearch(""); }}
-              >
-                Suppliers ({suppliers.length})
-              </button>
-              <button
-                className={"pl-pill" + (portfolioView === "products" ? " active" : "")}
-                onClick={() => { setPortfolioView("products"); setSelectedSupplier(null); setSearch(""); }}
-              >
-                Products ({products.length})
-              </button>
-              <button
-                className={"pl-pill" + (portfolioView === "library" ? " active" : "")}
-                onClick={() => { setPortfolioView("library"); setSelectedSupplier(null); setSearch(""); }}
-              >
-                Content Library ({assets.length})
-              </button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+              <div className="pl-subnav" style={{ marginBottom: 0 }}>
+                <button
+                  className={"pl-pill" + (portfolioView === "suppliers" ? " active" : "")}
+                  onClick={() => { setPortfolioView("suppliers"); setSelectedSupplier(null); setSearch(""); }}
+                >
+                  Suppliers ({suppliers.length})
+                </button>
+                <button
+                  className={"pl-pill" + (portfolioView === "products" ? " active" : "")}
+                  onClick={() => { setPortfolioView("products"); setSelectedSupplier(null); setSearch(""); }}
+                >
+                  Products ({products.length})
+                </button>
+                <button
+                  className={"pl-pill" + (portfolioView === "library" ? " active" : "")}
+                  onClick={() => { setPortfolioView("library"); setSelectedSupplier(null); setSearch(""); }}
+                >
+                  Content Library ({assets.length})
+                </button>
+              </div>
+              <div>
+                <button
+                  className="pl-header-btn"
+                  style={{ background: "var(--rose)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+                  onClick={() => document.getElementById("pl-csv-reimport").click()}
+                >
+                  ↑ Re-import CSV
+                </button>
+                <input
+                  id="pl-csv-reimport"
+                  type="file"
+                  accept=".csv"
+                  style={{ display: "none" }}
+                  onChange={handleCsvReimport}
+                />
+              </div>
             </div>
 
             {portfolioView !== "library" && (
@@ -3432,6 +3545,61 @@ export default function App() {
               onClick={() => { if (portfolioView === "library") { setEditingAsset(null); setShowAssetForm(true); } }}
               style={{ display: portfolioView === "library" ? "flex" : "none" }}
             >+</button>
+
+            {showCsvPreview && csvPreview && (
+              <div className="pl-modal-overlay" onClick={() => setShowCsvPreview(false)}>
+                <div className="pl-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                  <h2>Review CSV import</h2>
+                  <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginTop: -10, marginBottom: 18 }}>
+                    Here's what will change. Existing connections (campaigns, posts, assets) won't be affected.
+                  </p>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+                    <div className="pl-csv-stat" style={{ background: "#D4E8DA" }}>
+                      <div className="pl-num" style={{ color: "#2F6B45" }}>{csvPreview.added.length}</div>
+                      <div className="pl-lbl">New products</div>
+                    </div>
+                    <div className="pl-csv-stat" style={{ background: "var(--lavender)" }}>
+                      <div className="pl-num" style={{ color: "#4A3A63" }}>{csvPreview.updated.length}</div>
+                      <div className="pl-lbl">Updated</div>
+                    </div>
+                    <div className="pl-csv-stat" style={{ background: "var(--cream-deep)" }}>
+                      <div className="pl-num" style={{ color: "var(--ink-soft)" }}>{csvPreview.unchanged.length}</div>
+                      <div className="pl-lbl">Unchanged</div>
+                    </div>
+                    <div className="pl-csv-stat" style={{ background: "var(--peach)" }}>
+                      <div className="pl-num" style={{ color: "#7A4A30" }}>{csvPreview.missing.length}</div>
+                      <div className="pl-lbl">Not in CSV*</div>
+                    </div>
+                  </div>
+                  {csvPreview.missing.length > 0 && (
+                    <p style={{ fontSize: 12, color: "var(--ink-soft)", marginBottom: 16 }}>
+                      * {csvPreview.missing.length} product{csvPreview.missing.length !== 1 ? "s" : ""} in Marketing OS weren't in this CSV — they'll be kept as-is and not deleted.
+                    </p>
+                  )}
+                  {csvPreview.updated.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>Sample updates:</div>
+                      <div className="pl-card" style={{ maxHeight: 140, overflowY: "auto" }}>
+                        {csvPreview.updated.slice(0, 8).map(u => (
+                          <div key={u.new.id} className="pl-row" style={{ fontSize: 12 }}>
+                            <span style={{ fontWeight: 600 }}>{titleCase(u.new.name)}</span>
+                          </div>
+                        ))}
+                        {csvPreview.updated.length > 8 && (
+                          <div className="pl-row" style={{ fontSize: 12, color: "var(--ink-soft)" }}>
+                            + {csvPreview.updated.length - 8} more...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="pl-modal-actions">
+                    <button className="pl-btn-ghost" onClick={() => setShowCsvPreview(false)}>Cancel</button>
+                    <button className="pl-btn-primary" onClick={applyCsvMerge}>Apply merge</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
