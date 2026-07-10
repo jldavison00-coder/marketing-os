@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-const SUPABASE_URL = "https://heaqekkpdpeoxmiemwer.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlYXFla2twZHBlb3htaWVtd2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MjA1MDQsImV4cCI6MjA5OTE5NjUwNH0.KOzSJzCaO69v4aaWG2v-tYTYfOwtHPbgxJ8IVzdp-wA";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
 async function sbGet(key) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?key=eq.${key}&select=value`, {
