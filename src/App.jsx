@@ -153,6 +153,18 @@ const STYLE = `
   .pl-pin-btn:hover { background: var(--cream-deep); }
   .pl-pin-btn:active { background: var(--blush); }
   .pl-pin-error { color: #A8456A; font-size: 12.5px; text-align: center; margin-top: 8px; font-weight: 600; }
+  .pl-settings-panel { position: fixed; top: 0; right: 0; width: 300px; height: 100vh; background: var(--card); border-left: 1px solid var(--line); z-index: 60; display: flex; flex-direction: column; box-shadow: -4px 0 24px rgba(61,42,53,0.12); }
+  .pl-settings-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--line); }
+  .pl-settings-header h2 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+  .pl-settings-body { flex: 1; overflow-y: auto; padding: 16px; }
+  .pl-settings-section { margin-bottom: 24px; }
+  .pl-settings-section h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin: 0 0 10px; }
+  .pl-settings-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 10px; background: var(--cream); margin-bottom: 8px; cursor: pointer; transition: background .15s ease; }
+  .pl-settings-item:hover { background: var(--cream-deep); }
+  .pl-settings-item-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .pl-settings-item-sub { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+  .pl-settings-overlay { position: fixed; inset: 0; background: rgba(61,42,53,0.3); z-index: 59; }
+
   .pl-export-box { width: 100%; height: 180px; font-family: monospace; font-size: 11px; border: 1px solid var(--line); border-radius: 9px; padding: 10px; background: var(--cream); color: var(--ink); resize: none; outline: none; box-sizing: border-box; }
   .pl-detail-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
   .pl-detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-soft); width: 80px; flex-shrink: 0; padding-top: 1px; }
@@ -256,6 +268,12 @@ function IconSearch() {
 }
 function IconBack() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><path d="M15 18l-6-6 6-6"/></svg>;
+}
+function IconGear() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>;
+}
+function IconClose() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M18 6L6 18M6 6l12 12"/></svg>;
 }
 function IconDownload() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M12 3v13M7 11l5 5 5-5"/><path d="M3 20h18"/></svg>;
@@ -1426,6 +1444,7 @@ export default function App() {
   const [tab, setTab] = useState("portfolio");
   const [toast, setToast] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [viewMode, setViewMode] = useState(true); // always start in view mode
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState("");
@@ -2240,25 +2259,17 @@ export default function App() {
                 🔒 View Only — tap to edit
               </button>
             ) : (
-              <>
-                <button className="pl-view-badge edit" onClick={() => setViewMode(true)}>
-                  ✏️ Edit Mode
-                </button>
-                <button className="pl-header-btn" onClick={handleExport}>
-                  <IconDownload /> Export
-                </button>
-                <button className="pl-header-btn" onClick={() => document.getElementById("pl-import-input").click()}>
-                  <IconUpload /> Import
-                </button>
-                <input
-                  id="pl-import-input"
-                  type="file"
-                  accept=".json"
-                  style={{ display: "none" }}
-                  onChange={handleImport}
-                />
-              </>
+              <button className="pl-view-badge edit" onClick={() => setViewMode(true)}>
+                ✏️ Edit Mode
+              </button>
             )}
+            <button
+              className="pl-header-btn"
+              onClick={() => setShowSettings(true)}
+              title="Settings"
+            >
+              <IconGear /> Settings
+            </button>
           </div>
         </div>
         <div className="pl-nav">
@@ -2276,6 +2287,95 @@ export default function App() {
 
       <div className="pl-body">
         {toast && <div className="pl-import-success">{toast}</div>}
+
+        {showSettings && (
+          <>
+            <div className="pl-settings-overlay" onClick={() => setShowSettings(false)} />
+            <div className="pl-settings-panel">
+              <div className="pl-settings-header">
+                <h2>⚙️ Settings</h2>
+                <button
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-soft)", padding: 4 }}
+                  onClick={() => setShowSettings(false)}
+                >
+                  <IconClose />
+                </button>
+              </div>
+              <div className="pl-settings-body">
+
+                <div className="pl-settings-section">
+                  <h3>Appearance</h3>
+                  <div className="pl-settings-item" style={{ opacity: 0.5, cursor: "not-allowed" }}>
+                    <div>
+                      <div className="pl-settings-item-label">🌙 Dark Mode</div>
+                      <div className="pl-settings-item-sub">Coming soon</div>
+                    </div>
+                    <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600 }}>SOON</span>
+                  </div>
+                </div>
+
+                <div className="pl-settings-section">
+                  <h3>Data</h3>
+                  <div className="pl-settings-item" onClick={() => { setShowSettings(false); handleExport(); }}>
+                    <div>
+                      <div className="pl-settings-item-label">⬇️ Export Backup</div>
+                      <div className="pl-settings-item-sub">Copy your data as JSON</div>
+                    </div>
+                    <span style={{ color: "var(--ink-soft)" }}>›</span>
+                  </div>
+                  {!viewMode && (
+                    <>
+                      <div className="pl-settings-item" onClick={() => { setShowSettings(false); document.getElementById("pl-import-input").click(); }}>
+                        <div>
+                          <div className="pl-settings-item-label">⬆️ Import Backup</div>
+                          <div className="pl-settings-item-sub">Restore from a JSON backup</div>
+                        </div>
+                        <span style={{ color: "var(--ink-soft)" }}>›</span>
+                      </div>
+                      <div className="pl-settings-item" onClick={() => { setShowSettings(false); document.getElementById("pl-csv-reimport").click(); }}>
+                        <div>
+                          <div className="pl-settings-item-label">📦 Re-import Products CSV</div>
+                          <div className="pl-settings-item-sub">Merge updated Encompass export</div>
+                        </div>
+                        <span style={{ color: "var(--ink-soft)" }}>›</span>
+                      </div>
+                    </>
+                  )}
+                  {viewMode && (
+                    <div className="pl-settings-item" style={{ opacity: 0.5, cursor: "not-allowed" }}>
+                      <div>
+                        <div className="pl-settings-item-label">⬆️ Import / Re-import CSV</div>
+                        <div className="pl-settings-item-sub">Unlock edit mode to import</div>
+                      </div>
+                      <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600 }}>🔒</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pl-settings-section">
+                  <h3>Access</h3>
+                  <div className="pl-settings-item" onClick={() => { setShowSettings(false); if (viewMode) { setShowPinModal(true); setPinInput(""); setPinError(false); } else { setViewMode(true); } }}>
+                    <div>
+                      <div className="pl-settings-item-label">{viewMode ? "🔒 Unlock Edit Mode" : "✏️ Switch to View Only"}</div>
+                      <div className="pl-settings-item-sub">{viewMode ? "Enter PIN to enable editing" : "Hide all edit controls"}</div>
+                    </div>
+                    <span style={{ color: "var(--ink-soft)" }}>›</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <input id="pl-import-input" type="file" accept=".json" style={{ display: "none" }} onChange={handleImport} />
+            <input id="pl-csv-reimport" type="file" accept=".csv" style={{ display: "none" }} onChange={handleCsvReimport} />
+          </>
+        )}
+
+        {!showSettings && (
+          <>
+            <input id="pl-import-input" type="file" accept=".json" style={{ display: "none" }} onChange={handleImport} />
+            <input id="pl-csv-reimport" type="file" accept=".csv" style={{ display: "none" }} onChange={handleCsvReimport} />
+          </>
+        )}
 
         {showPinModal && (
           <div className="pl-modal-overlay" onClick={() => { setShowPinModal(false); setPinInput(""); }}>
