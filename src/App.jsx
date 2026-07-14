@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const SUPABASE_URL = "https://heaqekkpdpeoxmiemwer.supabase.co";
+const SUPABASE_KEY = "paste-your-new-key-here";
 
 async function sbGet(key) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?key=eq.${key}&select=value`, {
