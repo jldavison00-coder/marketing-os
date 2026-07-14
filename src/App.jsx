@@ -78,7 +78,34 @@ const STYLE = `
   .pl-app.dark .pl-field input, .pl-app.dark .pl-field select, .pl-app.dark .pl-field textarea { background: #261820; color: #F0E8EC; border-color: #3D2D35; }
   .pl-app.dark .pl-modal { background: #2E1E28; }
   .pl-app.dark .pl-pin-btn { background: #261820; border-color: #3D2D35; color: #F0E8EC; }
-  .pl-app.dark .pl-pin-btn:hover { background: #3D2D35; }
+  .pl-app.dark .pl-count-badge { background: var(--rose); color: #fff; }
+  .pl-app.dark .pl-tag.annual { background: #4A3A6A; color: #D4C8F0; }
+  .pl-app.dark .pl-tag.seasonal { background: #5A3020; color: #F0C8A8; }
+  .pl-app.dark .pl-proj-status.concept { background: #4A3A6A; color: #D4C8F0; }
+  .pl-app.dark .pl-proj-status.planning { background: #4A3A1A; color: #F0D8A0; }
+  .pl-app.dark .pl-proj-status.in-progress { background: var(--rose); color: #fff; }
+  .pl-app.dark .pl-proj-status.hold { background: #3A2A30; color: #C0A8B0; }
+  .pl-app.dark .pl-proj-status.complete { background: #1A3A28; color: #80D4A8; }
+  .pl-app.dark .pl-todo-badge { background: var(--rose); color: #fff; }
+  .pl-app.dark .pl-status-pill.draft { background: #3A2A30; color: #C0A8B0; }
+  .pl-app.dark .pl-status-pill.scheduled { background: var(--rose); color: #fff; }
+  .pl-app.dark .pl-status-pill.published { background: #1A3A28; color: #80D4A8; }
+  .pl-app.dark .pl-camp-type.focus { background: #4A3A6A; color: #D4C8F0; }
+  .pl-app.dark .pl-camp-type.deal { background: #4A3020; color: #F0C8A0; }
+  .pl-app.dark .pl-camp-type.pfp { background: var(--rose); color: #fff; }
+  .pl-app.dark .pl-rel-health.strong { background: #1A3A28; color: #80D4A8; }
+  .pl-app.dark .pl-rel-health.good { background: #4A3A6A; color: #D4C8F0; }
+  .pl-app.dark .pl-rel-health.needs-attention { background: #4A3020; color: #F0C8A0; }
+  .pl-app.dark .pl-rel-health.at-risk { background: #5A1A28; color: #F0A0B0; }
+  .pl-app.dark .pl-asset-type.photo { background: #1A3A28; color: #80D4A8; }
+  .pl-app.dark .pl-asset-type.video-reel { background: #4A3A6A; color: #D4C8F0; }
+  .pl-app.dark .pl-asset-type.graphic { background: #4A3020; color: #F0C8A0; }
+  .pl-app.dark .pl-asset-type.logo { background: var(--rose); color: #fff; }
+  .pl-app.dark .pl-platform-tag { background: #4A3A6A; color: #D4C8F0; }
+  .pl-app.dark .pl-pill { background: #2E1E28; border-color: #3D2D35; color: #C0A8B0; }
+  .pl-app.dark .pl-pill.active { background: var(--rose); border-color: var(--rose); color: #fff; }
+  .pl-app.dark .pl-subnav .pl-pill { background: #2E1E28; border-color: #3D2D35; color: #C0A8B0; }
+  .pl-app.dark .pl-subnav .pl-pill.active { background: var(--blush-deep); border-color: var(--blush-deep); color: #fff; }
 
   .pl-app { background: var(--cream); min-height: 100vh; font-family: 'Inter', -apple-system, sans-serif; color: var(--ink); }
   .pl-header { background: linear-gradient(135deg, var(--blush-deep), var(--blush-darker)); padding: 28px 28px 20px; }
