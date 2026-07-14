@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-const SUPABASE_URL = "https://heaqekkpdpeoxmiemwer.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlYXFla2twZHBlb3htaWVtd2VyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MjA1MDQsImV4cCI6MjA5OTE5NjUwNH0.KOzSJzCaO69v4aaWG2v-tYTYfOwtHPbgxJ8IVzdp-wA";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
 async function sbGet(key) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/app_data?key=eq.${key}&select=value`, {
@@ -142,6 +142,17 @@ const STYLE = `
   .pl-header-btn:hover { background: rgba(255,255,255,0.2); }
   .pl-import-success { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: #3F8F5C; color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 13px; font-weight: 600; z-index: 100; box-shadow: 0 4px 14px rgba(0,0,0,0.2); animation: fadeup .3s ease; }
   @keyframes fadeup { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  .pl-view-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 700; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); transition: all .15s ease; }
+  .pl-view-badge.view { background: rgba(255,255,255,0.15); color: #F4D9E0; }
+  .pl-view-badge.edit { background: var(--rose); color: #fff; border-color: var(--rose); }
+  .pl-pin-dots { display: flex; gap: 10px; justify-content: center; margin: 16px 0; }
+  .pl-pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: transparent; transition: background .1s ease; }
+  .pl-pin-dot.filled { background: var(--rose); border-color: var(--rose); }
+  .pl-pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+  .pl-pin-btn { padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); font-size: 18px; font-weight: 600; cursor: pointer; color: var(--ink); transition: all .1s ease; }
+  .pl-pin-btn:hover { background: var(--cream-deep); }
+  .pl-pin-btn:active { background: var(--blush); }
+  .pl-pin-error { color: #A8456A; font-size: 12.5px; text-align: center; margin-top: 8px; font-weight: 600; }
   .pl-export-box { width: 100%; height: 180px; font-family: monospace; font-size: 11px; border: 1px solid var(--line); border-radius: 9px; padding: 10px; background: var(--cream); color: var(--ink); resize: none; outline: none; box-sizing: border-box; }
   .pl-detail-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
   .pl-detail-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-soft); width: 80px; flex-shrink: 0; padding-top: 1px; }
@@ -1415,6 +1426,11 @@ export default function App() {
   const [tab, setTab] = useState("portfolio");
   const [toast, setToast] = useState(null);
   const [showExport, setShowExport] = useState(false);
+  const [viewMode, setViewMode] = useState(true); // always start in view mode
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const EDIT_PIN = "1437";
   const [portfolioView, setPortfolioView] = useState("suppliers"); // suppliers | products
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [search, setSearch] = useState("");
@@ -2106,6 +2122,23 @@ export default function App() {
     return list;
   }, [products, selectedSupplier, search]);
 
+  function handlePinDigit(digit) {
+    const next = pinInput + digit;
+    setPinInput(next);
+    setPinError(false);
+    if (next.length === 4) {
+      if (next === EDIT_PIN) {
+        setViewMode(false);
+        setShowPinModal(false);
+        setPinInput("");
+        showToast("Edit mode unlocked!");
+      } else {
+        setPinError(true);
+        setTimeout(() => setPinInput(""), 600);
+      }
+    }
+  }
+
   function handleExport() {
     setShowExport(true);
   }
@@ -2199,19 +2232,33 @@ export default function App() {
             <p className="pl-tagline">Campaigns, content & coverage — coordinated in one place.</p>
           </div>
           <div className="pl-header-actions">
-            <button className="pl-header-btn" onClick={handleExport}>
-              <IconDownload /> Export
-            </button>
-            <button className="pl-header-btn" onClick={() => document.getElementById("pl-import-input").click()}>
-              <IconUpload /> Import
-            </button>
-            <input
-              id="pl-import-input"
-              type="file"
-              accept=".json"
-              style={{ display: "none" }}
-              onChange={handleImport}
-            />
+            {viewMode ? (
+              <button
+                className="pl-view-badge view"
+                onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
+              >
+                🔒 View Only — tap to edit
+              </button>
+            ) : (
+              <>
+                <button className="pl-view-badge edit" onClick={() => setViewMode(true)}>
+                  ✏️ Edit Mode
+                </button>
+                <button className="pl-header-btn" onClick={handleExport}>
+                  <IconDownload /> Export
+                </button>
+                <button className="pl-header-btn" onClick={() => document.getElementById("pl-import-input").click()}>
+                  <IconUpload /> Import
+                </button>
+                <input
+                  id="pl-import-input"
+                  type="file"
+                  accept=".json"
+                  style={{ display: "none" }}
+                  onChange={handleImport}
+                />
+              </>
+            )}
           </div>
         </div>
         <div className="pl-nav">
@@ -2229,6 +2276,30 @@ export default function App() {
 
       <div className="pl-body">
         {toast && <div className="pl-import-success">{toast}</div>}
+
+        {showPinModal && (
+          <div className="pl-modal-overlay" onClick={() => { setShowPinModal(false); setPinInput(""); }}>
+            <div className="pl-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 280, textAlign: "center" }}>
+              <h2 style={{ marginBottom: 4 }}>Enter PIN</h2>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", marginBottom: 8 }}>Enter your PIN to unlock edit mode</p>
+              <div className="pl-pin-dots">
+                {[0,1,2,3].map(i => (
+                  <div key={i} className={"pl-pin-dot" + (pinInput.length > i ? " filled" : "")} />
+                ))}
+              </div>
+              {pinError && <div className="pl-pin-error">Incorrect PIN — try again</div>}
+              <div className="pl-pin-grid">
+                {[1,2,3,4,5,6,7,8,9].map(d => (
+                  <button key={d} className="pl-pin-btn" onClick={() => handlePinDigit(String(d))}>{d}</button>
+                ))}
+                <div />
+                <button className="pl-pin-btn" onClick={() => handlePinDigit("0")}>0</button>
+                <button className="pl-pin-btn" style={{ fontSize: 14 }} onClick={() => { setPinInput(p => p.slice(0,-1)); setPinError(false); }}>⌫</button>
+              </div>
+              <button className="pl-btn-ghost" style={{ marginTop: 14, width: "100%" }} onClick={() => { setShowPinModal(false); setPinInput(""); }}>Cancel</button>
+            </div>
+          </div>
+        )}
 
         {showExport && (() => {
           const json = getExportJSON();
@@ -2294,7 +2365,7 @@ export default function App() {
                     ))
                   )}
                   <div style={{ marginTop: 10 }}>
-                    <span className="pl-link" onClick={() => setShowTargetsForm(true)}>Set posting targets</span>
+                    {!viewMode && <span className="pl-link" onClick={() => setShowTargetsForm(true)}>Set posting targets</span>}
                   </div>
                 </div>
               )}
@@ -2516,7 +2587,7 @@ export default function App() {
                               </td>
                               <td><span className={"pl-status-pill " + p.status}>{POST_STATUSES.find(s => s.id === p.status).label}</span></td>
                               <td>
-                                <div className="pl-sheet-actions">
+                                <div className="pl-sheet-actions" style={{ display: viewMode ? "none" : "flex" }}>
                                   <span onClick={() => { setEditingPost(p); setShowPostForm(true); }}>Edit</span>
                                   <span onClick={() => deletePost(p.id)}>Delete</span>
                                 </div>
@@ -2562,7 +2633,7 @@ export default function App() {
                             {titleCase(l.supplier)} · {formatDate(l.startDate)}{l.endDate ? ` – ${formatDate(l.endDate)}` : ""}
                           </div>
                         </div>
-                        <div className="pl-sheet-actions">
+                        <div className="pl-sheet-actions" style={{ display: viewMode ? "none" : "flex" }}>
                           <span onClick={() => { setEditingDsd(l); setShowDsdForm(true); }}>Edit</span>
                           <span onClick={() => deleteDsdLink(l.id)}>Delete</span>
                         </div>
@@ -2631,7 +2702,7 @@ export default function App() {
                               </td>
                               <td style={{ maxWidth: 200, fontSize: 12, color: "var(--ink-soft)" }}>{d.notes}</td>
                               <td>
-                                <div className="pl-sheet-actions">
+                                <div className="pl-sheet-actions" style={{ display: viewMode ? "none" : "flex" }}>
                                   <span onClick={() => { setEditingAnalytics(d); setShowAnalyticsForm(true); }}>Edit</span>
                                   <span onClick={() => deleteAnalytics(d.id)}>Delete</span>
                                 </div>
@@ -2655,7 +2726,7 @@ export default function App() {
             )}
 
             <button
-              className="pl-fab"
+              className="pl-fab" style={{ display: viewMode ? "none" : "flex" }}
               onClick={() => {
                 if (postView === "dsd") { setEditingDsd(null); setShowDsdForm(true); }
                 else if (postView === "analytics") { setEditingAnalytics(null); setShowAnalyticsForm(true); }
@@ -2707,7 +2778,7 @@ export default function App() {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
               <div style={{ fontSize: 13, color: "var(--ink-soft)" }}>
-                {allKeyDates.length} key date{allKeyDates.length !== 1 ? "s" : ""} · <span className="pl-link" onClick={() => setShowEmployeeManager(true)}>Manage employees</span>
+                {allKeyDates.length} key date{allKeyDates.length !== 1 ? "s" : ""} · {!viewMode && <span className="pl-link" onClick={() => setShowEmployeeManager(true)}>Manage employees</span>}
               </div>
               <div className="pl-subnav" style={{ marginBottom: 0 }}>
                 <button className={"pl-pill" + (kdView === "month" ? " active" : "")} onClick={() => setKdView("month")}>Month</button>
@@ -2795,7 +2866,7 @@ export default function App() {
               </div>
             )}
 
-            <button className="pl-fab" onClick={() => { setEditingKd(null); setShowKdForm(true); }}>+</button>
+            <button className="pl-fab" style={{ display: viewMode ? "none" : "flex" }} onClick={() => { setEditingKd(null); setShowKdForm(true); }}>+</button>
 
             {detailKd && !showKdForm && !showEmployeeManager && (
               <KeyDateDetailModal
@@ -2918,7 +2989,7 @@ export default function App() {
                           <span className="dot" style={{ background: meta.color }}></span>
                           {meta.label}
                         </span>
-                        <div className="pl-camp-actions">
+                        <div className="pl-camp-actions" style={{ display: viewMode ? "none" : "flex" }}>
                           <span onClick={() => { setEditingCampaign(c); setShowCampaignForm(true); }}>Edit</span>
                           <span onClick={() => deleteCampaign(c.id)}>Delete</span>
                         </div>
@@ -2936,7 +3007,7 @@ export default function App() {
               />
             )}
 
-            <button className="pl-fab" onClick={() => { setEditingCampaign(null); setShowCampaignForm(true); }}>+</button>
+            <button className="pl-fab" style={{ display: viewMode ? "none" : "flex" }} onClick={() => { setEditingCampaign(null); setShowCampaignForm(true); }}>+</button>
 
             {showCampaignForm && (
               <CampaignForm
@@ -2999,11 +3070,11 @@ export default function App() {
                     </div>
                     {proj.notes && <div className="pl-proj-notes">{proj.notes}</div>}
                     <div className="pl-proj-footer">
-                      <div className="pl-camp-actions">
+                      <div className="pl-camp-actions" style={{ display: viewMode ? "none" : "flex" }}>
                         <span onClick={() => { setEditingProj(proj); setShowProjForm(true); }}>Edit</span>
                         <span onClick={() => deleteProject(proj.id)}>Delete</span>
                       </div>
-                      {proj.status !== "complete" && (
+                      {proj.status !== "complete" && !viewMode && (
                         <span
                           className="pl-link"
                           style={{ fontSize: 12 }}
@@ -3018,7 +3089,7 @@ export default function App() {
               })
             )}
 
-            <button className="pl-fab" onClick={() => { setEditingProj(null); setShowProjForm(true); }}>+</button>
+            <button className="pl-fab" style={{ display: viewMode ? "none" : "flex" }} onClick={() => { setEditingProj(null); setShowProjForm(true); }}>+</button>
 
             {showProjForm && (
               <ProjectForm
@@ -3101,18 +3172,18 @@ export default function App() {
                     )}
 
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
-                      <div className="pl-camp-actions">
+                      <div className="pl-camp-actions" style={{ display: viewMode ? "none" : "flex" }}>
                         <span onClick={() => { setEditingBudget(b); setShowBudgetForm(true); }}>Edit</span>
                         <span onClick={() => deleteBudget(b.id)}>Delete</span>
                       </div>
-                      <span className="pl-link" onClick={() => { setSpendTargetBudgetId(b.id); setShowSpendForm(true); }}>+ Log spend</span>
+                      {!viewMode && <span className="pl-link" onClick={() => { setSpendTargetBudgetId(b.id); setShowSpendForm(true); }}>+ Log spend</span>}
                     </div>
                   </div>
                 );
               })
             )}
 
-            <button className="pl-fab" onClick={() => { setEditingBudget(null); setShowBudgetForm(true); }}>+</button>
+            <button className="pl-fab" style={{ display: viewMode ? "none" : "flex" }} onClick={() => { setEditingBudget(null); setShowBudgetForm(true); }}>+</button>
 
             {showBudgetForm && (
               <BudgetForm
@@ -3159,7 +3230,7 @@ export default function App() {
                 <button
                   className="pl-header-btn"
                   style={{ background: "var(--rose)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
-                  onClick={() => document.getElementById("pl-csv-reimport").click()}
+                  onClick={() => document.getElementById("pl-csv-reimport").click()} style={{ display: viewMode ? "none" : "block" }}
                 >
                   ↑ Re-import CSV
                 </button>
@@ -3438,7 +3509,7 @@ export default function App() {
                     <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Supplier relationship</h3>
                     <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                       {rel.health && <span className={"pl-rel-health " + h.cls}>{h.label}</span>}
-                      <span className="pl-link" onClick={() => setShowRelForm(true)}>
+                      <span className="pl-link" style={{ display: viewMode ? "none" : "inline" }} onClick={() => setShowRelForm(true)}>
                         {rel.contactName ? "Edit details" : "Add details"}
                       </span>
                     </div>
@@ -3487,7 +3558,7 @@ export default function App() {
                     <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)" }}>
                       Interaction log {log.length > 0 && <span style={{ color: "var(--ink-soft)", fontWeight: 400 }}>({log.length})</span>}
                     </span>
-                    <span className="pl-link" onClick={() => setShowInteractionForm(true)}>+ Log interaction</span>
+                    {!viewMode && <span className="pl-link" onClick={() => setShowInteractionForm(true)}>+ Log interaction</span>}
                   </div>
                   {log.length === 0 ? (
                     <div className="pl-card" style={{ padding: "16px 18px", fontSize: 13, color: "var(--ink-soft)" }}>
@@ -3526,7 +3597,7 @@ export default function App() {
             })()}
 
             <button
-              className="pl-fab"
+              className="pl-fab" style={{ display: viewMode ? "none" : "flex" }}
               onClick={() => { if (portfolioView === "library") { setEditingAsset(null); setShowAssetForm(true); } }}
               style={{ display: portfolioView === "library" ? "flex" : "none" }}
             >+</button>
