@@ -47,6 +47,39 @@ const STYLE = `
     --ink-soft: #7A6470;
     --line: #EBDCDE;
   }
+  .pl-app.dark {
+    --cream: #1C1018;
+    --cream-deep: #261820;
+    --card: #2E1E28;
+    --blush: #5C2E40;
+    --blush-deep: #8B1A3A;
+    --blush-darker: #6B1228;
+    --rose: #D4698A;
+    --rose-deep: #E07A9A;
+    --lavender: #4A3A5A;
+    --lavender-deep: #7A66A0;
+    --peach: #4A2E28;
+    --sand: #3A2E1A;
+    --ink: #F0E8EC;
+    --ink-soft: #9A8590;
+    --line: #3D2D35;
+  }
+  .pl-app.dark .pl-header { background: linear-gradient(135deg, #3D0F22, #2A0818); }
+  .pl-app.dark .pl-kd-day { background: #2E1E28; }
+  .pl-app.dark .pl-kd-day.outside { background: #241420; opacity: 0.6; }
+  .pl-app.dark .pl-kd-dow { background: #261820; }
+  .pl-app.dark .pl-analytics-table th { background: #261820; }
+  .pl-app.dark .pl-analytics-table tr:hover td { background: #261820; }
+  .pl-app.dark .pl-sheet tr:hover td { background: #261820; }
+  .pl-app.dark .pl-sheet th { background: #261820; }
+  .pl-app.dark .pl-settings-panel { background: #2E1E28; border-color: #3D2D35; }
+  .pl-app.dark .pl-settings-item { background: #261820; }
+  .pl-app.dark .pl-settings-item:hover { background: #3D2D35; }
+  .pl-app.dark .pl-field input, .pl-app.dark .pl-field select, .pl-app.dark .pl-field textarea { background: #261820; color: #F0E8EC; border-color: #3D2D35; }
+  .pl-app.dark .pl-modal { background: #2E1E28; }
+  .pl-app.dark .pl-pin-btn { background: #261820; border-color: #3D2D35; color: #F0E8EC; }
+  .pl-app.dark .pl-pin-btn:hover { background: #3D2D35; }
+
   .pl-app { background: var(--cream); min-height: 100vh; font-family: 'Inter', -apple-system, sans-serif; color: var(--ink); }
   .pl-header { background: linear-gradient(135deg, var(--blush-deep), var(--blush-darker)); padding: 28px 28px 20px; }
   .pl-logo { font-family: Georgia, 'Times New Roman', serif; color: #FBEEF1; font-size: 28px; font-weight: 700; letter-spacing: 0.3px; margin: 0; }
@@ -1445,6 +1478,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [showExport, setShowExport] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const [viewMode, setViewMode] = useState(true); // always start in view mode
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState("");
@@ -1558,6 +1592,9 @@ export default function App() {
         if (assets_) setAssets(assets_);
         if (anal) setAnalyticsData(anal);
         if (budg) setBudgets(budg);
+        // Load dark mode preference
+        const dm = await sbGet("pourline-darkmode");
+        if (dm === true || dm === false) setDarkMode(dm);
       } catch (e) {
         console.error("Failed to load from Supabase:", e);
       }
@@ -1636,6 +1673,11 @@ export default function App() {
     if (!loaded) return;
     sbSet("pourline-budgets", budgets).catch(e => console.error(e));
   }, [budgets, loaded]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    sbSet("pourline-darkmode", darkMode).catch(e => console.error(e));
+  }, [darkMode, loaded]);
 
   function saveAnalytics(form) {
     if (editingAnalytics) {
@@ -2242,7 +2284,7 @@ export default function App() {
   ];
 
   return (
-    <div className="pl-app">
+    <div className={"pl-app" + (darkMode ? " dark" : "")}>
       <style>{STYLE}</style>
       <div className="pl-header">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -2305,12 +2347,14 @@ export default function App() {
 
                 <div className="pl-settings-section">
                   <h3>Appearance</h3>
-                  <div className="pl-settings-item" style={{ opacity: 0.5, cursor: "not-allowed" }}>
+                  <div className="pl-settings-item" onClick={() => setDarkMode(d => !d)}>
                     <div>
-                      <div className="pl-settings-item-label">🌙 Dark Mode</div>
-                      <div className="pl-settings-item-sub">Coming soon</div>
+                      <div className="pl-settings-item-label">{darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}</div>
+                      <div className="pl-settings-item-sub">{darkMode ? "Switch to light theme" : "Switch to dark theme"}</div>
                     </div>
-                    <span style={{ fontSize: 11, color: "var(--ink-soft)", fontWeight: 600 }}>SOON</span>
+                    <div style={{ width: 40, height: 22, borderRadius: 999, background: darkMode ? "var(--rose)" : "var(--line)", position: "relative", transition: "background .2s ease" }}>
+                      <div style={{ position: "absolute", top: 3, left: darkMode ? 20 : 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left .2s ease", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                    </div>
                   </div>
                 </div>
 
