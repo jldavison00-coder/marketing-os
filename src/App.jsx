@@ -2135,7 +2135,7 @@ export default function App() {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target.result);
         if (data.campaigns) setCampaigns(data.campaigns);
@@ -2150,7 +2150,22 @@ export default function App() {
         if (data.assets) setAssets(data.assets);
         if (data.analyticsData) setAnalyticsData(data.analyticsData);
         if (data.budgets) setBudgets(data.budgets);
-        showToast("Data imported successfully!");
+        // Explicitly push all data to Supabase
+        await Promise.all([
+          data.campaigns && sbSet("pourline-campaigns", data.campaigns),
+          data.products && sbSet("pourline-products", data.products),
+          data.keyDates && sbSet("pourline-keydates", data.keyDates),
+          data.employees && sbSet("pourline-employees", data.employees),
+          data.posts && sbSet("pourline-posts", data.posts),
+          data.dsdLinks && sbSet("pourline-dsdlinks", data.dsdLinks),
+          data.postTargets && sbSet("pourline-posttargets", data.postTargets),
+          data.projects && sbSet("pourline-projects", data.projects),
+          data.supplierRels && sbSet("pourline-supplierrels", data.supplierRels),
+          data.assets && sbSet("pourline-assets", data.assets),
+          data.analyticsData && sbSet("pourline-analytics", data.analyticsData),
+          data.budgets && sbSet("pourline-budgets", data.budgets),
+        ].filter(Boolean));
+        showToast("Data imported and synced to cloud!");
       } catch (err) {
         showToast("Import failed — make sure the file is a valid Marketing OS backup.");
       }
